@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}Virtual Try-On{% endblock %}
+{% block topbar_title %}Virtual Try-On{% endblock %}
+
+{% block head %}
+<style>
+  .tryon-grid { display:grid; grid-template-columns:420px 1fr; gap:24px; align-items:start; }
+
+  /* Drop zones */
+  .dz {
+    border:1.5px dashed rgba(124,111,224,0.35); border-radius:14px;
+    padding:24px 16px; text-align:center; cursor:pointer;
+    transition:all 0.3s; position:relative; background:rgba(124,111,224,0.03);
+  }
+  .dz:hover, .dz.dragover { border-color:var(--lav); background:rgba(124,111,224,0.08); transform:translateY(-2px); }
+  .dz input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .dz-icon { font-size:2rem; display:block; margin-bottom:8px; }
+  .dz-lbl { font-size:0.85rem; font-weight:600; margin-bottom:3px; }
+  .dz-sub { font-size:0.72rem; color:var(--muted); }
+  .dz-preview { display:none; width:100%; height:140px; object-fit:cover; border-radius:10px; margin-top:10px; }
+  .dz-fn { font-size:0.72rem; color:var(--mint); margin-top:6px; font-weight:500; display:none; }
+  .dz.has-file .dz-icon, .dz.has-file .dz-lbl, .dz.has-file .dz-sub { display:none; }
+  .dz.has-file .dz-preview, .dz.has-file .dz-fn { display:block; }
+
+  /* Color pickers for garment hint */
+  .color-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .color-dot {
+    width:28px; height:28px; border-radius:50%; cursor:pointer;
+    border:2px solid transparent; transition:all 0.2s;
+  }
+  .color-dot.selected { border-color:var(--white); box-shadow:0 0 0 2px var(--lav); }
+
+  /* Garment type chips */
+  .chip-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip {
+    padding:7px 14px; border-radius:20px; font-size:0.78rem; font-weight:500;
+    border:1px solid var(--border2); background:transparent; color:var(--muted);
+    cursor:pointer; transition:all 0.2s;
+  }
+  .chip.selected { background:rgba(124,111,224,0.15); border-color:var(--lav); color:var(--white); }
+
+  /* Result panel */
+  .result-panel { display:none; animation:fadeUp 0.5s ease forwards; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  .result-img-wrap { position:relative; border-radius:18px; overflow:hidden; margin-bottom:20px; }
+  .result-img-wrap img { width:100%; display:block; transition:transform 0.4s; }
+  .result-img-wrap:hover img { transform:scale(1.02); }
+  .result-overlay {
+    position:absolute; top:14px; right:14px; display:flex; flex-direction:column; gap:8px;
+  }
+  .ov-badge {
+    padding:5px 12px; border-radius:8px; font-size:0.7rem; font-weight:600;
+    background:rgba(10,12,24,0.85); backdrop-filter:blur(12px);
+    border:1px solid var(--border2);
+  }
+
+  .size-mega {
+    background:linear-gradient(135deg,rgba(124,111,224,0.15),rgba(232,165,152,0.08));
+    border:1px solid rgba(124,111,224,0.22); border-radius:18px;
+    padding:24px; text-align:center; margin-bottom:16px;
+  }
+  .size-mega .sl { font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .size-mega .sv {
+    font-family:'Outfit',sans-serif; font-size:4rem; font-weight:900; line-height:1;
+    background:linear-gradient(135deg,var(--lav),var(--rose));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .size-mega .st { font-size:0.8rem; color:var(--muted); margin-top:8px; line-height:1.5; }
+
+  .stat-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .s3-item { background:var(--navy3); border:1px solid var(--border); border-radius:12px; padding:14px 10px; text-align:center; }
+  .s3-v { font-family:'Outfit',sans-serif; font-size:1.2rem; font-weight:800; }
+  .s3-l { font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-top:2px; }
+
+  .bt-row { background:var(--navy3); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .bt-emoji { font-size:1.6rem; width:44px; height:44px; background:rgba(124,111,224,0.1); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  .fit-tips { margin-bottom:16px; }
+  .ft-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .ft-item:last-child { border-bottom:none; }
+  .ft-dot { width:6px; height:6px; border-radius:50%; background:var(--lav); flex-shrink:0; margin-top:6px; }
+  .ft-text { font-size:0.82rem; color:var(--muted); line-height:1.55; }
+
+  .size-tbl { width:100%; border-collapse:collapse; font-size:0.8rem; }
+  .size-tbl th { padding:8px 10px; text-align:left; color:var(--muted); font-size:0.65rem; text-transform:uppercase; letter-spacing:0.08em; border-bottom:1px solid var(--border); }
+  .size-tbl td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--white); }
+  .size-tbl tr.hl td { background:rgba(124,111,224,0.13); color:var(--lav3); font-weight:600; }
+
+  .actions-row { display:flex; gap:10px; margin-top:16px; }
+
+  /* Wishlist modal */
+  .modal-wrap { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); z-index:200; align-items:center; justify-content:center; }
+  .modal-wrap.open { display:flex; }
+  .modal { background:var(--navy2); border:1px solid var(--border2); border-radius:20px; padding:32px; width:100%; max-width:440px; }
+  .modal-title { font-family:'Outfit',sans-serif; font-size:1.2rem; font-weight:800; margin-bottom:20px; }
+  .modal-close { float:right; cursor:pointer; color:var(--muted); font-size:1.2rem; }
+  .placeholder-panel {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:400px; text-align:center; color:var(--muted);
+  }
+  .ph-icon { font-size:4rem; margin-bottom:16px; opacity:0.4; }
+  .ph-h { font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:700; color:var(--white); margin-bottom:8px; }
+  .ph-s { font-size:0.85rem; line-height:1.6; max-width:280px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tryon-grid">
+  <!-- LEFT: Inputs -->
+  <div class="stack">
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="card-title"><span class="card-icon">📷</span>Upload Photos</div>
+      <div class="field">
+        <label class="lbl">Your Photo</label>
+        <div class="dz" id="dz-user">
+          <input type="file" id="user_image" accept="image/*"/>
+          <span class="dz-icon">🧍</span>
+          <div class="dz-lbl">Drop your full-body photo</div>
+          <div class="dz-sub">Works best with a clear, well-lit photo</div>
+          <img id="prev-user" class="dz-preview" alt=""/>
+          <div class="dz-fn" id="fn-user"></div>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="lbl">Garment Image</label>
+        <div class="dz" id="dz-cloth">
+          <input type="file" id="cloth_image" accept="image/*"/>
+          <span class="dz-icon">👕</span>
+          <div class="dz-lbl">Drop the clothing item</div>
+          <div class="dz-sub">Flat-lay or product shots work best</div>
+          <img id="prev-cloth" class="dz-preview" alt=""/>
+          <div class="dz-fn" id="fn-cloth"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Measurements -->
+    <div class="card">
+      <div class="card-title"><span class="card-icon">📏</span>Your Details</div>
+      <div class="g2">
+        <div class="field">
+          <label class="lbl">Height (cm)</label>
+          <input type="number" id="height" placeholder="e.g. 170" min="100" max="250"
+            value="{{ user.height or '' }}"/>
+        </div>
+        <div class="field">
+          <label class="lbl">Weight (kg)</label>
+          <input type="number" id="weight" placeholder="e.g. 65" min="30" max="300"
+            value="{{ user.weight or '' }}"/>
+        </div>
+      </div>
+      <div class="field">
+        <label class="lbl">Gender (for sizing)</label>
+        <select id="gender">
+          <option value="unisex">Unisex / Prefer not to say</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="lbl">Brand Name (optional)</label>
+        <input type="text" id="brand" placeholder="e.g. Zara, H&M, Uniqlo"/>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="lbl">Garment Type</label>
+        <div class="chip-row" id="garment-chips">
+          <div class="chip selected" data-v="top" onclick="selectChip(this)">👕 Top</div>
+          <div class="chip" data-v="bottom" onclick="selectChip(this)">👖 Bottom</div>
+          <div class="chip" data-v="full" onclick="selectChip(this)">🧥 Full Outfit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button class="btn btn-primary btn-full" onclick="doTryon()" id="submit-btn" style="padding:14px;">
+      <span class="btn-label">✨ Generate Try-On</span><div class="spin"></div>
+    </button>
+  </div>
+
+  <!-- RIGHT: Result -->
+  <div>
+    <!-- Placeholder -->
+    <div class="card" id="placeholder">
+      <div class="placeholder-panel">
+        <div class="ph-icon">🪞</div>
+        <div class="ph-h">Your try-on will appear here</div>
+        <div class="ph-s">Upload your photo and a garment, fill in your details, then hit Generate.</div>
+      </div>
+    </div>
+
+    <!-- Result (hidden until ready) -->
+    <div class="result-panel card" id="result-panel">
+      <!-- Image -->
+      <div class="result-img-wrap">
+        <img id="result-img" src="" alt="Try-on result"/>
+        <div class="result-overlay">
+          <span class="ov-badge" style="color:var(--mint);">✓ Generated</span>
+          <span class="ov-badge" id="ov-size" style="color:var(--lav3);"></span>
+        </div>
+      </div>
+
+      <!-- Size -->
+      <div class="size-mega">
+        <div class="sl">Recommended Size</div>
+        <div class="sv" id="res-size">–</div>
+        <div class="st" id="res-tip"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-3">
+        <div class="s3-item"><div class="s3-v" style="color:var(--lav2);" id="res-bmi">–</div><div class="s3-l">BMI</div></div>
+        <div class="s3-item"><div class="s3-v" style="color:var(--mint);" id="res-h">–</div><div class="s3-l">Height</div></div>
+        <div class="s3-item"><div class="s3-v" style="color:var(--rose);" id="res-w">–</div><div class="s3-l">Weight</div></div>
+      </div>
+
+      <!-- Body type -->
+      <div class="bt-row">
+        <div class="bt-emoji" id="res-bt-icon"></div>
+        <div>
+          <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:0.95rem;" id="res-bt-label"></div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:3px;" id="res-bt-tip"></div>
+        </div>
+      </div>
+
+      <!-- Fit Tips -->
+      <div class="card-title" style="margin-bottom:12px;font-size:0.95rem;"><span class="card-icon">💡</span>Style Tips for This Size</div>
+      <div class="fit-tips" id="res-tips"></div>
+
+      <div class="divider"></div>
+
+      <!-- Size Chart -->
+      <div class="card-title" style="margin-bottom:10px;font-size:0.9rem;"><span class="card-icon">📊</span>Full Size Chart</div>
+      <table class="size-tbl">
+        <thead><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hips</th></tr></thead>
+        <tbody id="res-chart"></tbody>
+      </table>
+
+      <!-- Actions -->
+      <div class="actions-row">
+        <button class="btn btn-ghost" onclick="openWishlist()" style="flex:1;">❤️ Save to Wishlist</button>
+        <button class="btn btn-ghost" onclick="window.print()" style="flex:1;">🖨️ Export</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Wishlist Modal -->
+<div class="modal-wrap" id="wl-modal">
+  <div class="modal">
+    <div class="modal-title">
+      ❤️ Save to Wishlist
+      <span class="modal-close" onclick="closeWishlist()">✕</span>
+    </div>
+    <div class="field"><label class="lbl">Item Name</label><input type="text" id="wl-name" placeholder="e.g. Floral Summer Dress"/></div>
+    <div class="field"><label class="lbl">Brand</label><input type="text" id="wl-brand" placeholder="e.g. Zara"/></div>
+    <div class="g2">
+      <div class="field"><label class="lbl">Size</label><input type="text" id="wl-size" placeholder="e.g. M"/></div>
+      <div class="field"><label class="lbl">Price</label><input type="text" id="wl-price" placeholder="e.g. ₹1,499"/></div>
+    </div>
+    <div class="field" style="margin-bottom:0"><label class="lbl">Link / Notes</label><input type="text" id="wl-link" placeholder="URL or notes"/></div>
+    <div style="margin-top:20px;display:flex;gap:10px;">
+      <button class="btn btn-ghost" onclick="closeWishlist()" style="flex:1;">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWishlist()" style="flex:1;"><span class="btn-label">Save Item</span><div class="spin"></div></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentSize = '';
+  let currentBrand = '';
+
+  function setupDz(dzId, inputId, prevId, fnId) {
+    const dz = document.getElementById(dzId);
+    const inp = document.getElementById(inputId);
+    const prv = document.getElementById(prevId);
+    const fn  = document.getElementById(fnId);
+    inp.addEventListener('change', () => {
+      const file = inp.files[0];
+      if (!file) return;
+      fn.textContent = '✓ ' + file.name;
+      const r = new FileReader();
+      r.onload = e => { prv.src = e.target.result; dz.classList.add('has-file'); };
+      r.readAsDataURL(file);
+    });
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('dragover');
+      inp.files = e.dataTransfer.files; inp.dispatchEvent(new Event('change'));
+    });
+  }
+  setupDz('dz-user','user_image','prev-user','fn-user');
+  setupDz('dz-cloth','cloth_image','prev-cloth','fn-cloth');
+
+  function selectChip(el) {
+    document.querySelectorAll('#garment-chips .chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  async function doTryon() {
+    const userFile  = document.getElementById('user_image').files[0];
+    const clothFile = document.getElementById('cloth_image').files[0];
+    const height    = document.getElementById('height').value;
+    const weight    = document.getElementById('weight').value;
+    const gender    = document.getElementById('gender').value;
+    const brand     = document.getElementById('brand').value;
+    const garment   = document.querySelector('#garment-chips .chip.selected')?.dataset.v || 'top';
+
+    if (!userFile || !clothFile) { toast('Upload both photos to continue.','error'); return; }
+    if (!height || !weight)      { toast('Enter your height and weight.','error'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.classList.add('loading');
+
+    const fd = new FormData();
+    fd.append('user_image', userFile);
+    fd.append('cloth_image', clothFile);
+    fd.append('height', height);
+    fd.append('weight', weight);
+    fd.append('gender', gender);
+    fd.append('brand', brand);
+    fd.append('garment_type', garment);
+
+    try {
+      const res  = await fetch('/api/predict', { method:'POST', body:fd });
+      const data = await res.json();
+      if (data.error) { toast(data.error,'error'); return; }
+
+      document.getElementById('result-img').src = '/' + data.result_image + '?t=' + Date.now();
+      document.getElementById('res-size').textContent = data.size;
+      document.getElementById('res-tip').textContent  = data.body_type.tip;
+      document.getElementById('ov-size').textContent  = 'Size ' + data.size;
+      document.getElementById('res-bmi').textContent  = data.bmi;
+      document.getElementById('res-h').textContent    = data.height + 'cm';
+      document.getElementById('res-w').textContent    = data.weight + 'kg';
+      document.getElementById('res-bt-icon').textContent  = data.body_type.icon;
+      document.getElementById('res-bt-label').textContent = data.body_type.label + ' Build';
+      document.getElementById('res-bt-tip').textContent   = data.body_type.tip;
+
+      // Size chart
+      const tbody = document.getElementById('res-chart');
+      tbody.innerHTML = '';
+      data.size_chart.forEach(row => {
+        const tr = document.createElement('tr');
+        if (row.size === data.size) tr.classList.add('hl');
+        tr.innerHTML = `<td>${row.size}${row.size===data.size?' ◀':''}</td><td>${row.chest}</td><td>${row.waist}</td><td>${row.hips}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      // Fit tips (from backend if available, else generic)
+      const tips = ['Choose fabrics that breathe and move with you.','Layer smartly — a great blazer elevates any outfit.','Fit at the shoulders is key; everything else can be tailored.'];
+      const tipEl = document.getElementById('res-tips');
+      tipEl.innerHTML = tips.map(t => `<div class="ft-item"><div class="ft-dot"></div><div class="ft-text">${t}</div></div>`).join('');
+
+      currentSize  = data.size;
+      currentBrand = brand;
+      document.getElementById('wl-size').value  = data.size;
+      document.getElementById('wl-brand').value = brand;
+
+      document.getElementById('placeholder').style.display = 'none';
+      const rp = document.getElementById('result-panel');
+      rp.style.display = 'block';
+      setTimeout(() => rp.scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+      toast('Try-on generated! ✨','success');
+    } catch(e) {
+      toast('Something went wrong. Please try again.','error');
+    } finally {
+      btn.classList.remove('loading');
+    }
+  }
+
+  function openWishlist() {
+    document.getElementById('wl-modal').classList.add('open');
+  }
+  function closeWishlist() {
+    document.getElementById('wl-modal').classList.remove('open');
+  }
+  async function saveWishlist() {
+    const btn = document.querySelector('#wl-modal .btn-primary');
+    btn.classList.add('loading');
+    const data = {
+      name:  document.getElementById('wl-name').value || 'Unnamed Item',
+      brand: document.getElementById('wl-brand').value,
+      size:  document.getElementById('wl-size').value,
+      price: document.getElementById('wl-price').value,
+      image: document.getElementById('result-img').src,
+    };
+    const res = await fetch('/api/wishlist/add', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    btn.classList.remove('loading');
+    if (res.ok) { closeWishlist(); toast('Added to wishlist! ❤️','success'); }
+    else { toast('Could not save item.','error'); }
+  }
+</script>
+{% endblock %}

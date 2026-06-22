@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block head %}
+<style>
+  .welcome-card {
+    background:linear-gradient(135deg,rgba(124,111,224,0.15) 0%,rgba(232,165,152,0.08) 100%);
+    border:1px solid rgba(124,111,224,0.2); border-radius:20px; padding:32px;
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;
+    position:relative; overflow:hidden;
+  }
+  .welcome-card::before {
+    content:''; position:absolute; right:-40px; top:-40px;
+    width:180px; height:180px; border-radius:50%;
+    background:radial-gradient(circle,rgba(124,111,224,0.12),transparent 70%);
+  }
+  .welcome-h { font-family:'Outfit',sans-serif; font-size:1.6rem; font-weight:800; margin-bottom:6px; }
+  .welcome-h span { background:linear-gradient(135deg,var(--lav2),var(--rose)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .welcome-sub { color:var(--muted); font-size:0.9rem; line-height:1.6; }
+  .tip-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .tip-chip { padding:5px 13px; border-radius:20px; font-size:0.72rem; font-weight:500; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--muted); }
+
+  .recent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
+  .history-thumb {
+    background:var(--navy3); border:1px solid var(--border); border-radius:14px;
+    overflow:hidden; transition:all 0.25s; cursor:pointer;
+  }
+  .history-thumb:hover { border-color:rgba(124,111,224,0.3); transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,0.3); }
+  .thumb-img { width:100%; height:130px; object-fit:cover; background:var(--navy4); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:2rem; }
+  .thumb-img img { width:100%; height:100%; object-fit:cover; }
+  .thumb-info { padding:12px; }
+  .thumb-brand { font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .thumb-size { font-family:'Outfit',sans-serif; font-size:1.1rem; font-weight:800; color:var(--white); }
+  .thumb-date { font-size:0.68rem; color:var(--muted); margin-top:4px; }
+
+  .style-tips { display:flex; flex-direction:column; gap:10px; }
+  .tip-item { background:var(--navy3); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; align-items:flex-start; gap:12px; }
+  .tip-emoji { font-size:1.2rem; flex-shrink:0; margin-top:1px; }
+  .tip-text { font-size:0.82rem; line-height:1.6; color:var(--muted); }
+  .tip-text strong { color:var(--white); font-weight:600; }
+
+  .quick-action { display:flex; flex-direction:column; gap:10px; }
+  .qa-btn { display:flex; align-items:center; gap:14px; padding:14px 18px; background:var(--navy3); border:1px solid var(--border); border-radius:12px; cursor:pointer; text-decoration:none; color:var(--white); transition:all 0.2s; }
+  .qa-btn:hover { border-color:rgba(124,111,224,0.3); background:rgba(124,111,224,0.07); transform:translateX(4px); }
+  .qa-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+  .qa-label { font-family:'Outfit',sans-serif; font-size:0.9rem; font-weight:700; }
+  .qa-sub { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+  .qa-arrow { margin-left:auto; color:var(--muted); }
+
+  .progress-bar { height:6px; background:var(--navy4); border-radius:3px; overflow:hidden; margin-top:8px; }
+  .progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--lav),var(--rose)); transition:width 0.8s ease; }
+
+  .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
+  .empty-state .e-icon { font-size:2.5rem; margin-bottom:12px; }
+  .empty-state .e-h { font-family:'Outfit',sans-serif; font-size:1rem; font-weight:700; color:var(--white); margin-bottom:6px; }
+  .empty-state .e-s { font-size:0.82rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set try_count = user.history|length %}
+
+<!-- Welcome banner -->
+<div class="welcome-card">
+  <div style="position:relative;z-index:1;">
+    <div class="welcome-h">Hello, <span>{{ user.name.split(' ')[0] }}</span> 👋</div>
+    <div class="welcome-sub">Your personal fitting room is ready. What are you trying on today?</div>
+    <div class="tip-row">
+      <span class="tip-chip">Member since {{ user.joined }}</span>
+      <span class="tip-chip">{{ try_count }} try-on{{ 's' if try_count != 1 else '' }}</span>
+      {% for brand, sz in (user.saved_sizes or {}).items() %}<span class="tip-chip">{{ brand }}: {{ sz }}</span>{% endfor %}
+    </div>
+  </div>
+  <a href="/tryon" class="btn btn-primary" style="white-space:nowrap;flex-shrink:0;margin-left:24px;">✨ New Try-On</a>
+</div>
+
+<!-- Stats row -->
+<div class="g4" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-label">Total Try-Ons</div>
+    <div class="stat-value" style="background:linear-gradient(135deg,var(--lav),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ try_count }}</div>
+    <div class="stat-sub">All time</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Saved Brands</div>
+    <div class="stat-value" style="color:var(--mint);">{{ (user.saved_sizes or {})|length }}</div>
+    <div class="stat-sub">Size profiles</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Wishlist</div>
+    <div class="stat-value" style="color:var(--amber);">{{ (user.wishlist or [])|length }}</div>
+    <div class="stat-sub">Items saved</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Profile</div>
+    <div class="stat-value" style="color:var(--rose);">{% if try_count >= 5 %}Pro{% elif try_count >= 1 %}Active{% else %}New{% endif %}</div>
+    <div class="stat-sub">Status</div>
+    <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:{{ [try_count * 20, 100]|min }}%"></div></div>
+  </div>
+</div>
+
+<!-- Recent + Quick Actions -->
+<div class="g2" style="margin-bottom:24px;">
+  <!-- Recent Try-Ons -->
+  <div class="card">
+    <div class="card-title">
+      <span class="card-icon">🕐</span>
+      Recent Try-Ons
+      <a href="/history" style="margin-left:auto;font-size:0.78rem;color:var(--lav2);text-decoration:none;font-weight:500;">View all →</a>
+    </div>
+    {% if user.history %}
+    <div class="recent-grid">
+      {% for h in user.history[:4] %}
+      <div class="history-thumb">
+        <div class="thumb-img">
+          {% if h.result_image %}<img src="/{{ h.result_image }}" alt="Try-on result" onerror="this.style.display='none'"/>{% else %}🪞{% endif %}
+        </div>
+        <div class="thumb-info">
+          <div class="thumb-brand">{{ h.brand or 'Unknown Brand' }}</div>
+          <div class="thumb-size">Size {{ h.size }}</div>
+          <div class="thumb-date">{{ h.date }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="e-icon">🪞</div>
+      <div class="e-h">No try-ons yet</div>
+      <div class="e-s">Start with your first virtual try-on above.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick Actions -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="card card-sm">
+      <div class="card-title"><span class="card-icon">⚡</span>Quick Actions</div>
+      <div class="quick-action">
+        <a href="/tryon" class="qa-btn">
+          <div class="qa-icon" style="background:rgba(124,111,224,0.15);">🪞</div>
+          <div><div class="qa-label">New Try-On</div><div class="qa-sub">Upload photo + garment</div></div>
+          <div class="qa-arrow">→</div>
+        </a>
+        <a href="/history" class="qa-btn">
+          <div class="qa-icon" style="background:rgba(94,207,160,0.1);">🕐</div>
+          <div><div class="qa-label">View History</div><div class="qa-sub">{{ try_count }} try-on{{ 's' if try_count != 1 else '' }}</div></div>
+          <div class="qa-arrow">→</div>
+        </a>
+        <a href="/profile" class="qa-btn">
+          <div class="qa-icon" style="background:rgba(232,165,152,0.1);">👤</div>
+          <div><div class="qa-label">Edit Profile</div><div class="qa-sub">Update measurements</div></div>
+          <div class="qa-arrow">→</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Saved Sizes -->
+    {% if user.saved_sizes %}
+    <div class="card card-sm">
+      <div class="card-title"><span class="card-icon">📐</span>Saved Sizes</div>
+      {% for brand, sz in user.saved_sizes.items() %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.85rem;color:var(--muted);">{{ brand }}</span>
+        <span class="badge badge-lav">{{ sz }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Style Tips -->
+<div class="card">
+  <div class="card-title"><span class="card-icon">💡</span>Style Tips for You</div>
+  <div class="g3">
+    <div class="tip-item">
+      <span class="tip-emoji">👗</span>
+      <div class="tip-text"><strong>Color Blocking</strong> — Pair contrasting colors in large solid panels to make a bold, structured statement.</div>
+    </div>
+    <div class="tip-item">
+      <span class="tip-emoji">📏</span>
+      <div class="tip-text"><strong>Rule of Thirds</strong> — Break your outfit into thirds visually (top, mid, bottom) for balanced proportions.</div>
+    </div>
+    <div class="tip-item">
+      <span class="tip-emoji">🎨</span>
+      <div class="tip-text"><strong>Tonal Dressing</strong> — Dress in similar tones head to toe for an effortlessly elongated silhouette.</div>
+    </div>
+    <div class="tip-item">
+      <span class="tip-emoji">🧵</span>
+      <div class="tip-text"><strong>Fabric First</strong> — Structured fabrics (cotton, denim) hold shape; draped ones (viscose, silk) flow. Match to occasion.</div>
+    </div>
+    <div class="tip-item">
+      <span class="tip-emoji">⚖️</span>
+      <div class="tip-text"><strong>Balance Volume</strong> — Loose top = slim bottom. Fitted top = wide-leg or flared bottom. The rule works both ways.</div>
+    </div>
+    <div class="tip-item">
+      <span class="tip-emoji">🔄</span>
+      <div class="tip-text"><strong>Capsule Wardrobe</strong> — 10 versatile pieces that mix and match create 50+ looks. Quality over quantity, always.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Try-On History{% endblock %}
+{% block topbar_title %}Try-On History{% endblock %}
+
+{% block head %}
+<style>
+  .filter-bar { display:flex; align-items:center; gap:12px; margin-bottom:24px; flex-wrap:wrap; }
+  .search-wrap { flex:1; min-width:200px; position:relative; }
+  .search-wrap input { padding-left:38px; }
+  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:0.9rem; pointer-events:none; }
+
+  .history-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .h-card {
+    background:var(--navy3); border:1px solid var(--border); border-radius:16px;
+    overflow:hidden; transition:all 0.25s;
+  }
+  .h-card:hover { border-color:rgba(124,111,224,0.3); transform:translateY(-4px); box-shadow:0 16px 40px rgba(0,0,0,0.3); }
+  .h-img { width:100%; height:160px; object-fit:cover; background:var(--navy4); display:flex; align-items:center; justify-content:center; font-size:2.5rem; color:var(--muted); }
+  .h-img img { width:100%; height:100%; object-fit:cover; }
+  .h-body { padding:16px; }
+  .h-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .h-brand { font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .h-size { font-family:'Outfit',sans-serif; font-size:1.4rem; font-weight:800; color:var(--white); }
+  .h-info { font-size:0.78rem; color:var(--muted); margin-bottom:12px; line-height:1.5; }
+  .h-actions { display:flex; gap:8px; }
+  .h-btn { flex:1; padding:8px; border-radius:8px; font-size:0.75rem; font-weight:600; cursor:pointer; border:1px solid var(--border2); background:transparent; color:var(--muted); transition:all 0.2s; font-family:'Outfit',sans-serif; }
+  .h-btn:hover { background:var(--glass2); color:var(--white); }
+  .h-btn.danger:hover { background:rgba(255,80,80,0.1); color:#FF7B7B; border-color:rgba(255,80,80,0.2); }
+
+  .empty { text-align:center; padding:80px 20px; color:var(--muted); }
+  .empty .ei { font-size:3rem; margin-bottom:16px; opacity:0.4; }
+  .empty h3 { font-family:'Outfit',sans-serif; font-size:1.1rem; color:var(--white); margin-bottom:8px; }
+
+  .type-badge { padding:2px 8px; border-radius:6px; font-size:0.65rem; font-weight:600; text-transform:capitalize; background:rgba(124,111,224,0.1); color:var(--lav3); border:1px solid rgba(124,111,224,0.15); margin-left:auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-inp" placeholder="Search by brand, size, date…" oninput="filterHistory()"/>
+  </div>
+  <select id="filter-size" onchange="filterHistory()" style="width:auto;min-width:130px;">
+    <option value="">All Sizes</option>
+    <option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option>
+  </select>
+  <select id="filter-type" onchange="filterHistory()" style="width:auto;min-width:150px;">
+    <option value="">All Garments</option>
+    <option value="top">Top</option>
+    <option value="bottom">Bottom</option>
+    <option value="full">Full Outfit</option>
+  </select>
+  <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+</div>
+
+{% if user.history %}
+<div id="history-count" style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">Showing <span id="count-num">{{ user.history|length }}</span> try-on{{ 's' if user.history|length != 1 else '' }}</div>
+<div class="history-grid" id="history-grid">
+  {% for h in user.history %}
+  <div class="h-card" data-brand="{{ h.brand|lower }}" data-size="{{ h.size }}" data-type="{{ h.garment_type }}" data-date="{{ h.date|lower }}" data-id="{{ h.id }}">
+    <div class="h-img">
+      {% if h.result_image %}
+      <img src="/{{ h.result_image }}" alt="Try-on" onerror="this.parentElement.innerHTML='🪞'"/>
+      {% else %}🪞{% endif %}
+    </div>
+    <div class="h-body">
+      <div class="h-meta">
+        <div>
+          <div class="h-brand">{{ h.brand or 'Unknown Brand' }}</div>
+          <div class="h-size">{{ h.size }}</div>
+        </div>
+        <div class="type-badge">{{ h.garment_type or 'top' }}</div>
+      </div>
+      <div class="h-info">
+        BMI {{ h.bmi }} &nbsp;·&nbsp; {{ h.height }}cm &nbsp;·&nbsp; {{ h.weight }}kg<br/>
+        <span style="font-size:0.72rem;">🕐 {{ h.date }}</span>
+      </div>
+      <div class="h-actions">
+        <button class="h-btn" onclick="viewDetail('{{ h.id }}')">👁 View</button>
+        <button class="h-btn danger" onclick="deleteEntry('{{ h.id }}', this)">🗑 Delete</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <div class="ei">🕐</div>
+  <h3>No try-ons yet</h3>
+  <p style="margin-bottom:20px;">Your try-on history will appear here.</p>
+  <a href="/tryon" class="btn btn-primary">✨ Start Your First Try-On</a>
+</div>
+{% endif %}
+
+<!-- Detail modal -->
+<div class="modal-wrap" id="detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--navy2);border:1px solid var(--border2);border-radius:20px;padding:0;width:100%;max-width:520px;overflow:hidden;">
+    <div id="detail-img-wrap" style="width:100%;height:280px;overflow:hidden;">
+      <img id="detail-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;"/>
+    </div>
+    <div style="padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;" id="d-brand"></div>
+          <div style="font-family:'Outfit',sans-serif;font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(--lav),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="d-size"></div>
+        </div>
+        <button onclick="closeDetail()" style="background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--white);cursor:pointer;font-size:0.85rem;">✕ Close</button>
+      </div>
+      <div class="g3" id="d-stats" style="gap:10px;"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const historyData = {{ user.history | tojson }};
+
+  function filterHistory() {
+    const q    = document.getElementById('search-inp').value.toLowerCase();
+    const sz   = document.getElementById('filter-size').value;
+    const type = document.getElementById('filter-type').value;
+    let count  = 0;
+    document.querySelectorAll('#history-grid .h-card').forEach(card => {
+      const matchQ = !q || card.dataset.brand.includes(q) || card.dataset.size.toLowerCase().includes(q) || card.dataset.date.includes(q);
+      const matchSz = !sz || card.dataset.size === sz;
+      const matchT  = !type || card.dataset.type === type;
+      const show = matchQ && matchSz && matchT;
+      card.style.display = show ? '' : 'none';
+      if (show) count++;
+    });
+    const el = document.getElementById('count-num');
+    if (el) el.textContent = count;
+  }
+  function clearFilters() {
+    document.getElementById('search-inp').value = '';
+    document.getElementById('filter-size').value = '';
+    document.getElementById('filter-type').value = '';
+    filterHistory();
+  }
+  async function deleteEntry(id, btn) {
+    if (!confirm('Delete this try-on? This cannot be undone.')) return;
+    const res = await fetch('/api/history/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id}) });
+    if (res.ok) {
+      btn.closest('.h-card').style.transition = 'all 0.3s';
+      btn.closest('.h-card').style.opacity = '0';
+      btn.closest('.h-card').style.transform = 'scale(0.9)';
+      setTimeout(() => { btn.closest('.h-card').remove(); filterHistory(); }, 300);
+      toast('Deleted.','info');
+    } else toast('Could not delete.','error');
+  }
+  function viewDetail(id) {
+    const h = historyData.find(x => x.id === id);
+    if (!h) return;
+    document.getElementById('detail-img').src = '/' + (h.result_image || '');
+    document.getElementById('d-brand').textContent = h.brand || 'Unknown Brand';
+    document.getElementById('d-size').textContent = 'Size ' + h.size;
+    document.getElementById('d-stats').innerHTML = `
+      <div class="s3-item"><div class="s3-v" style="color:var(--lav2);">${h.bmi}</div><div class="s3-l">BMI</div></div>
+      <div class="s3-item"><div class="s3-v" style="color:var(--mint);">${h.height}cm</div><div class="s3-l">Height</div></div>
+      <div class="s3-item"><div class="s3-v" style="color:var(--rose);">${h.weight}kg</div><div class="s3-l">Weight</div></div>
+    `.replace(/class="s3-/g, 'style="background:var(--navy3);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;" class="s3-');
+    const modal = document.getElementById('detail-modal');
+    modal.style.display = 'flex';
+  }
+  function closeDetail() {
+    document.getElementById('detail-modal').style.display = 'none';
+  }
+</script>
+{% endblock %}

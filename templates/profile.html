@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block topbar_title %}My Profile{% endblock %}
+
+{% block head %}
+<style>
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  
+  .avatar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px;
+    background: linear-gradient(135deg, rgba(124, 111, 224, 0.08) 0%, rgba(232, 165, 152, 0.04) 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  
+  .profile-avatar-lg {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--lav), var(--rose));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 2.5rem;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(124, 111, 224, 0.35);
+    margin-bottom: 16px;
+  }
+  
+  .profile-name-lg {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  
+  .profile-email-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+  
+  .joined-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .measurement-card {
+    background: var(--navy3);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  .m-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+  
+  .m-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+  
+  .m-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+  
+  .body-type-banner {
+    background: var(--navy3);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  
+  .bt-icon-lg {
+    font-size: 2rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(124, 111, 224, 0.1);
+    border: 1px solid rgba(124, 111, 224, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+  
+  .empty-state .e-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  .empty-state .e-h {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+  
+  .empty-state .e-s {
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 900px) {
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-grid">
+  <!-- LEFT COLUMN: Account Details & Edit Form -->
+  <div class="stack">
+    <!-- Quick Overview Card -->
+    <div class="avatar-card">
+      <div class="profile-avatar-lg">{{ user.avatar }}</div>
+      <div class="profile-name-lg">{{ user.name }}</div>
+      <div class="profile-email-sub">{{ user.email }}</div>
+      <span class="joined-badge">Member since {{ user.joined }}</span>
+    </div>
+
+    <!-- Edit Profile Card -->
+    <div class="card">
+      <div class="card-title">
+        <span class="card-icon">👤</span>
+        Edit Personal Details
+      </div>
+      
+      <form id="profile-form" onsubmit="updateProfile(event)">
+        <div class="field">
+          <label class="lbl" for="profile-name">Full Name</label>
+          <input type="text" id="profile-name" value="{{ user.name }}" required placeholder="Your Name" />
+        </div>
+        
+        <div class="field">
+          <label class="lbl" for="profile-email">Email Address</label>
+          <input type="email" id="profile-email" value="{{ user.email }}" required placeholder="email@example.com" />
+        </div>
+        
+        <div class="field">
+          <label class="lbl" for="profile-phone">Phone Number</label>
+          <input type="tel" id="profile-phone" value="{{ user.phone or '' }}" placeholder="e.g. +91 98765 43210" />
+        </div>
+        
+        <div class="field">
+          <label class="lbl" for="profile-location">Location / City</label>
+          <input type="text" id="profile-location" value="{{ user.location or '' }}" placeholder="e.g. Pune, India" />
+        </div>
+        
+        <div class="field">
+          <label class="lbl" for="profile-style">Style Preference</label>
+          <select id="profile-style">
+            <option value="" {% if not user.style_pref %}selected{% endif %}>Select Style Preference</option>
+            <option value="Casual" {% if user.style_pref == 'Casual' %}selected{% endif %}>Casual & Comfortable</option>
+            <option value="Minimalist" {% if user.style_pref == 'Minimalist' %}selected{% endif %}>Minimalist & Classic</option>
+            <option value="Formal" {% if user.style_pref == 'Formal' %}selected{% endif %}>Formal & Elegant</option>
+            <option value="Streetwear" {% if user.style_pref == 'Streetwear' %}selected{% endif %}>Urban & Streetwear</option>
+            <option value="Bohemian" {% if user.style_pref == 'Bohemian' %}selected{% endif %}>Bohemian & Flowy</option>
+            <option value="Vintage" {% if user.style_pref == 'Vintage' %}selected{% endif %}>Retro & Vintage</option>
+            <option value="Chic" {% if user.style_pref == 'Chic' %}selected{% endif %}>Trendy & Chic</option>
+            <option value="Sporty" {% if user.style_pref == 'Sporty' %}selected{% endif %}>Sporty & Active</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-full" id="save-btn" style="margin-top: 8px;">
+          <span class="btn-label">✨ Save Changes</span>
+          <div class="spin"></div>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: Size Profile & Measurements -->
+  <div class="stack">
+    <!-- Size & Fit Summary -->
+    <div class="card">
+      <div class="card-title">
+        <span class="card-icon">📐</span>
+        Your Fit Profile
+      </div>
+      
+      {% if user.history and user.history|length > 0 %}
+        {% set latest = user.history[0] %}
+        
+        <!-- Measurement Stats Grid -->
+        <div class="stat-grid">
+          <div class="measurement-card">
+            <div class="m-icon" style="background: rgba(94, 207, 160, 0.1); color: var(--mint);">📏</div>
+            <div>
+              <div class="m-label">Height</div>
+              <div class="m-value">{{ latest.height }} cm</div>
+            </div>
+          </div>
+          <div class="measurement-card">
+            <div class="m-icon" style="background: rgba(232, 165, 152, 0.1); color: var(--rose);">⚖️</div>
+            <div>
+              <div class="m-label">Weight</div>
+              <div class="m-value">{{ latest.weight }} kg</div>
+            </div>
+          </div>
+          <div class="measurement-card">
+            <div class="m-icon" style="background: rgba(124, 111, 224, 0.1); color: var(--lav2);">📊</div>
+            <div>
+              <div class="m-label">BMI</div>
+              <div class="m-value">{{ latest.bmi }}</div>
+            </div>
+          </div>
+          <div class="measurement-card">
+            <div class="m-icon" style="background: rgba(244, 192, 122, 0.1); color: var(--amber);">🧬</div>
+            <div>
+              <div class="m-label">Gender</div>
+              <div class="m-value" style="text-transform: capitalize;">{{ latest.gender }}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Body Type Banner -->
+        <div class="body-type-banner">
+          <div class="bt-icon-lg">
+            {% if latest.body_type == 'Slim' %}🌿
+            {% elif latest.body_type == 'Athletic' %}⚡
+            {% elif latest.body_type == 'Curvy' %}✨
+            {% else %}🌸{% endif %}
+          </div>
+          <div>
+            <div style="font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--white);">
+              {{ latest.body_type }} Build Shape
+            </div>
+            <div style="font-size: 0.8rem; color: var(--muted); margin-top: 4px; line-height: 1.4;">
+              {% if latest.body_type == 'Slim' %}Fitted silhouettes and structured fabrics add dimension.
+              {% elif latest.body_type == 'Athletic' %}Most cuts work great — try slim or tailored fits.
+              {% elif latest.body_type == 'Curvy' %}A-line and wrap styles beautifully complement your shape.
+              {% else %}Empire waists and draped fabrics offer comfort and style.{% endif %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <!-- Empty State for Measurements -->
+        <div class="empty-state">
+          <div class="e-icon">📐</div>
+          <div class="e-h">No Measurements Found</div>
+          <div class="e-s">Go to the Try-On room and enter your height and weight. Your body profile stats will appear here.</div>
+          <a href="/tryon" class="btn btn-ghost">✨ Go to Try-On Room</a>
+        </div>
+      {% endif %}
+
+      <!-- Saved Brand Sizes -->
+      <div class="divider" style="margin: 20px 0;"></div>
+      
+      <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">
+        <span class="card-icon">🏷️</span>
+        Saved Brand Sizes
+      </div>
+      
+      {% if user.saved_sizes and user.saved_sizes|length > 0 %}
+        <div class="stack" style="gap: 8px;">
+          {% for brand, sz in user.saved_sizes.items() %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--navy3); border: 1px solid var(--border); border-radius: 12px;">
+              <span style="font-size: 0.88rem; color: var(--white); font-weight: 500; text-transform: capitalize;">{{ brand }}</span>
+              <span class="badge badge-lav" style="font-size: 0.8rem; font-weight: 700; padding: 4px 10px;">Size {{ sz }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 24px;">
+          <div class="e-s" style="margin-bottom: 0;">No saved sizes yet. When you perform a try-on, size recommendations for brands will be stored here.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function updateProfile(event) {
+    event.preventDefault();
+    
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.classList.add('loading');
+    
+    const payload = {
+      name: document.getElementById('profile-name').value.trim(),
+      email: document.getElementById('profile-email').value.trim(),
+      phone: document.getElementById('profile-phone').value.trim(),
+      location: document.getElementById('profile-location').value.trim(),
+      style_pref: document.getElementById('profile-style').value
+    };
+    
+    try {
+      const response = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.ok) {
+        toast('Profile updated successfully! ✨', 'success');
+        // Reload to update avatar and details in sidebar/topbar
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } else {
+        toast(result.error || 'Failed to update profile.', 'error');
+        saveBtn.classList.remove('loading');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast('An error occurred. Please try again.', 'error');
+      saveBtn.classList.remove('loading');
+    }
+  }
+</script>
+{% endblock %}

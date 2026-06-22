@@ -1,0 +1,55 @@
+{
+  "0a251ce4-e0da-4151-afa7-34223af82dbb": {
+    "id": "0a251ce4-e0da-4151-afa7-34223af82dbb",
+    "name": "Suhani Satpude",
+    "email": "suhanisatpude@gmail.com",
+    "password": "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f",
+    "avatar": "S",
+    "joined": "June 2026",
+    "history": [
+      {
+        "id": "2190ff1f",
+        "date": "15 Jun 2026, 14:11",
+        "result_image": "static/results\\result_2190ff1f.jpg",
+        "cloth_image": "static/uploads\\cloth_2190ff1f_Screenshot 2026-06-15 134921.png",
+        "size": "XS",
+        "bmi": 15.2,
+        "height": 170.0,
+        "weight": 44.0,
+        "gender": "female",
+        "brand": "zara",
+        "garment_type": "top",
+        "body_type": "Slim"
+      }
+    ],
+    "wishlist": [],
+    "saved_sizes": {
+      "zara": "XS"
+    }
+  },
+  "60a4599e-3fd7-4f81-bb07-975df4317a6f": {
+    "id": "60a4599e-3fd7-4f81-bb07-975df4317a6f",
+    "name": "Demo User",
+    "email": "demo@fitvision.ai",
+    "password": "0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d",
+    "avatar": "D",
+    "joined": "June 2026",
+    "history": [],
+    "wishlist": [],
+    "saved_sizes": {}
+  },
+  "f45cd7ed-eb10-47f4-94c0-fd7eabd44ad6": {
+    "id": "f45cd7ed-eb10-47f4-94c0-fd7eabd44ad6",
+    "name": "Validation Test User Updated",
+    "email": "validation_test_updated@fitvision.ai",
+    "password": "6267f09f1b5033e3be863ed444dcfd65dfb51b4c3b8b7e967b9ccf7693aaf451",
+    "avatar": "V",
+    "joined": "June 2026",
+    "history": [],
+    "wishlist": [],
+    "saved_sizes": {},
+    "phone": "+91 99999 11111",
+    "location": "Bangalore, India",
+    "style_pref": "Minimalist"
+  }
+}

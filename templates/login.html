@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+
+{% block head %}
+<style>
+  body { display:block; background:var(--navy); overflow:hidden; }
+  .auth-wrap {
+    display:grid; grid-template-columns:1fr 1fr; min-height:100vh;
+  }
+
+  /* LEFT — brand panel */
+  .auth-brand {
+    background:linear-gradient(145deg, #0E1025 0%, #12152A 60%, #1A1035 100%);
+    padding:56px; display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; overflow:hidden;
+  }
+  .auth-brand::before {
+    content:''; position:absolute; top:-30%; left:-20%;
+    width:80%; height:80%; border-radius:50%;
+    background:radial-gradient(circle, rgba(124,111,224,0.18) 0%, transparent 65%);
+  }
+  .auth-brand::after {
+    content:''; position:absolute; bottom:-20%; right:-10%;
+    width:60%; height:60%; border-radius:50%;
+    background:radial-gradient(circle, rgba(232,165,152,0.12) 0%, transparent 65%);
+  }
+  .brand-content { position:relative; z-index:1; }
+  .brand-logo {
+    font-family:'Outfit',sans-serif; font-size:2rem; font-weight:900;
+    background:linear-gradient(135deg,var(--lav),var(--rose));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    letter-spacing:-0.02em; margin-bottom:56px;
+  }
+  .brand-h {
+    font-family:'Outfit',sans-serif; font-size:2.8rem; font-weight:800;
+    line-height:1.1; letter-spacing:-0.03em; margin-bottom:20px;
+  }
+  .brand-h span { background:linear-gradient(135deg,var(--lav2),var(--rose)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .brand-p { font-size:1rem; color:var(--muted); line-height:1.7; max-width:360px; }
+  .brand-features { display:flex; flex-direction:column; gap:16px; margin-top:40px; position:relative; z-index:1; }
+  .bf-item {
+    display:flex; align-items:center; gap:14px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px; padding:14px 18px; backdrop-filter:blur(8px);
+  }
+  .bf-icon { font-size:1.5rem; width:44px; height:44px; background:rgba(124,111,224,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .bf-text .t { font-family:'Outfit',sans-serif; font-size:0.95rem; font-weight:700; }
+  .bf-text .s { font-size:0.78rem; color:var(--muted); margin-top:2px; }
+  .brand-stats { display:flex; gap:32px; position:relative; z-index:1; }
+  .bs-item .v { font-family:'Outfit',sans-serif; font-size:1.8rem; font-weight:800; background:linear-gradient(135deg,var(--lav),var(--rose)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .bs-item .l { font-size:0.72rem; color:var(--muted); margin-top:2px; text-transform:uppercase; letter-spacing:0.08em; }
+
+  /* RIGHT — form panel */
+  .auth-form-panel {
+    background:var(--navy); padding:56px; display:flex;
+    align-items:center; justify-content:center;
+    border-left:1px solid var(--border);
+  }
+  .auth-box { width:100%; max-width:400px; }
+  .auth-tabs { display:flex; background:var(--navy2); border-radius:12px; padding:4px; margin-bottom:32px; }
+  .auth-tab {
+    flex:1; text-align:center; padding:10px; border-radius:9px;
+    font-family:'Outfit',sans-serif; font-size:0.9rem; font-weight:600;
+    cursor:pointer; transition:all 0.25s; color:var(--muted);
+  }
+  .auth-tab.active { background:linear-gradient(135deg,var(--lav),#5A4EC2); color:#fff; }
+  .auth-title { font-family:'Outfit',sans-serif; font-size:1.6rem; font-weight:800; margin-bottom:8px; letter-spacing:-0.02em; }
+  .auth-sub { font-size:0.85rem; color:var(--muted); margin-bottom:28px; line-height:1.5; }
+  .input-wrap { position:relative; }
+  .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1rem; pointer-events:none; }
+  .input-wrap input { padding-left:40px; }
+  .pw-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:0.85rem; color:var(--muted); transition:color 0.2s; }
+  .pw-toggle:hover { color:var(--white); }
+  .auth-divider { display:flex; align-items:center; gap:14px; margin:20px 0; }
+  .auth-divider span { font-size:0.75rem; color:var(--muted); white-space:nowrap; }
+  .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .social-btn {
+    width:100%; padding:11px; border-radius:10px; border:1px solid var(--border2);
+    background:var(--glass2); color:var(--white); font-family:'Inter',sans-serif;
+    font-size:0.88rem; font-weight:500; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; gap:10px; transition:all 0.2s;
+  }
+  .social-btn:hover { background:var(--navy3); border-color:var(--border2); }
+  .strength-bar { height:3px; border-radius:2px; background:var(--navy3); margin-top:6px; overflow:hidden; }
+  .strength-fill { height:100%; border-radius:2px; transition:all 0.4s; width:0%; }
+  .form-panel { display:none; }
+  .form-panel.active { display:block; }
+</style>
+{% endblock %}
+
+{% block auth_content %}
+<div class="auth-wrap">
+  <!-- LEFT -->
+  <div class="auth-brand">
+    <div class="brand-content">
+      <div class="brand-logo">FitVision</div>
+      <div class="brand-h">Try It On.<br><span>Before You Buy.</span></div>
+      <p class="brand-p">AI-powered virtual try-on and smart sizing. See exactly how clothes will look on you — no guessing, no returns.</p>
+      <div class="brand-features">
+        <div class="bf-item">
+          <div class="bf-icon">🪞</div>
+          <div class="bf-text">
+            <div class="t">AI Virtual Try-On</div>
+            <div class="s">Overlay any garment on your photo instantly</div>
+          </div>
+        </div>
+        <div class="bf-item">
+          <div class="bf-icon">📐</div>
+          <div class="bf-text">
+            <div class="t">Smart Size Advisor</div>
+            <div class="s">Personalized size recommendations per brand</div>
+          </div>
+        </div>
+        <div class="bf-item">
+          <div class="bf-icon">🕐</div>
+          <div class="bf-text">
+            <div class="t">Try-On History</div>
+            <div class="s">Review and compare all your past try-ons</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="brand-stats">
+      <div class="bs-item"><div class="v">50K+</div><div class="l">Try-Ons Done</div></div>
+      <div class="bs-item"><div class="v">98%</div><div class="l">Size Accuracy</div></div>
+      <div class="bs-item"><div class="v">4.9★</div><div class="l">User Rating</div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="auth-form-panel">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
+        <div class="auth-tab" onclick="switchTab('register')">Create Account</div>
+      </div>
+
+      <!-- LOGIN -->
+      <div class="form-panel active" id="panel-login">
+        <div class="auth-title">Welcome back 👋</div>
+        <div class="auth-sub">Sign in to your FitVision account.</div>
+        <div class="field">
+          <label class="lbl">Email</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="l-email" placeholder="you@example.com"/>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="l-pw" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"/>
+            <span class="pw-toggle" onclick="togglePw('l-pw',this)">Show</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="doLogin()" id="login-btn">
+          <span class="btn-label">Sign In</span><div class="spin"></div>
+        </button>
+        <div class="auth-divider"><span>or</span></div>
+        <button class="social-btn" onclick="demoLogin()">🎭 &nbsp;Try Demo Account</button>
+        <p style="text-align:center;margin-top:20px;font-size:0.8rem;color:var(--muted);">
+          No account? <a href="#" onclick="switchTab('register')" style="color:var(--lav2);text-decoration:none;font-weight:500;">Create one free →</a>
+        </p>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="form-panel" id="panel-register">
+        <div class="auth-title">Get started ✨</div>
+        <div class="auth-sub">Create your free FitVision account.</div>
+        <div class="field">
+          <label class="lbl">Full Name</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" id="r-name" placeholder="Your full name"/>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Email</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="r-email" placeholder="you@example.com"/>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="r-pw" placeholder="Min 8 characters" oninput="checkStrength(this.value)"/>
+            <span class="pw-toggle" onclick="togglePw('r-pw',this)">Show</span>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;" id="strength-label"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doRegister()" id="reg-btn">
+          <span class="btn-label">Create Account</span><div class="spin"></div>
+        </button>
+        <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:var(--muted);">
+          By signing up you agree to our <a href="#" style="color:var(--lav2);text-decoration:none;">Terms</a> and <a href="#" style="color:var(--lav2);text-decoration:none;">Privacy Policy</a>.
+        </p>
+        <p style="text-align:center;margin-top:12px;font-size:0.8rem;color:var(--muted);">
+          Already have an account? <a href="#" onclick="switchTab('login')" style="color:var(--lav2);text-decoration:none;font-weight:500;">Sign in →</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+    document.getElementById('panel-login').classList.toggle('active', tab==='login');
+    document.getElementById('panel-register').classList.toggle('active', tab==='register');
+  }
+  function togglePw(id, el) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    el.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+  }
+  function checkStrength(pw) {
+    const fill = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const configs = [
+      {w:'0%', c:'', l:''},
+      {w:'25%', c:'#FF7B7B', l:'Weak'},
+      {w:'50%', c:'#F4C07A', l:'Fair'},
+      {w:'75%', c:'#5ECFA0', l:'Good'},
+      {w:'100%', c:'#7C6FE0', l:'Strong 💪'},
+    ];
+    const cfg = configs[score] || configs[0];
+    fill.style.width = cfg.w; fill.style.background = cfg.c;
+    label.textContent = cfg.l; label.style.color = cfg.c;
+  }
+  async function doLogin() {
+    const btn = document.getElementById('login-btn');
+    const email = document.getElementById('l-email').value.trim();
+    const pw    = document.getElementById('l-pw').value;
+    if (!email || !pw) { toast('Please fill in all fields.','error'); return; }
+    btn.classList.add('loading');
+    const res = await fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password:pw}) });
+    btn.classList.remove('loading');
+    if (res.ok) { window.location.href = '/dashboard'; }
+    else { const d = await res.json(); toast(d.error || 'Login failed','error'); }
+  }
+  async function doRegister() {
+    const btn = document.getElementById('reg-btn');
+    const name  = document.getElementById('r-name').value.trim();
+    const email = document.getElementById('r-email').value.trim();
+    const pw    = document.getElementById('r-pw').value;
+    if (!name || !email || !pw) { toast('Please fill in all fields.','error'); return; }
+    if (pw.length < 8) { toast('Password must be at least 8 characters.','error'); return; }
+    btn.classList.add('loading');
+    const res = await fetch('/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,email,password:pw}) });
+    btn.classList.remove('loading');
+    if (res.ok) { window.location.href = '/dashboard'; }
+    else { const d = await res.json(); toast(d.error || 'Registration failed','error'); }
+  }
+  async function demoLogin() {
+    // Auto-create + login demo user
+    const res = await fetch('/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:'Demo User',email:'demo@fitvision.ai',password:'demo1234'}) });
+    if (res.ok || res.status === 409) {
+      const r2 = await fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:'demo@fitvision.ai',password:'demo1234'}) });
+      if (r2.ok) window.location.href = '/dashboard';
+    }
+  }
+</script>
+{% endblock %}

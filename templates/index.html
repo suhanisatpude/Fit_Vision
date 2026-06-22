@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FitVision – Virtual Try-On & Size Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #0D0F1A;
+      --navy-2:  #151726;
+      --navy-3:  #1E2135;
+      --lavender:#7C6FE0;
+      --lav-soft:#9B91F5;
+      --rose:    #E8A598;
+      --white:   #F8F7FF;
+      --slate:   #8A8FA8;
+      --success: #5ECFA0;
+      --glass:   rgba(255,255,255,0.04);
+      --border:  rgba(255,255,255,0.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── AMBIENT BG ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -30%;
+      left: -20%;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(circle, rgba(124,111,224,0.12) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -20%;
+      right: -15%;
+      width: 55vw;
+      height: 55vw;
+      background: radial-gradient(circle, rgba(232,165,152,0.08) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(13,15,26,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--lavender), var(--rose));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-badge {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--slate);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      position: relative;
+      z-index: 1;
+      padding: 100px 48px 60px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* ── HERO HEADER ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .hero-tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--lavender);
+      background: rgba(124,111,224,0.12);
+      border: 1px solid rgba(124,111,224,0.25);
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 16px;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--lavender) 0%, var(--rose) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--slate);
+      font-weight: 300;
+      line-height: 1.7;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* ── GRID ── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: rgba(124,111,224,0.25); }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title .icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, rgba(124,111,224,0.3), rgba(232,165,152,0.2));
+      border: 1px solid rgba(124,111,224,0.3);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+    }
+
+    /* ── FILE DROP ── */
+    .drop-zone {
+      border: 1.5px dashed rgba(124,111,224,0.35);
+      border-radius: 14px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      background: rgba(124,111,224,0.04);
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--lavender);
+      background: rgba(124,111,224,0.09);
+      transform: translateY(-2px);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .drop-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+    .drop-sub {
+      font-size: 0.75rem;
+      color: var(--slate);
+    }
+    .drop-preview {
+      display: none;
+      width: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .drop-filename {
+      font-size: 0.75rem;
+      color: var(--success);
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    /* ── FORM FIELDS ── */
+    .field-group { margin-bottom: 20px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--slate);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    input[type="number"], select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--navy-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      outline: none;
+      appearance: none;
+    }
+    input[type="number"]:focus, select:focus {
+      border-color: var(--lavender);
+      box-shadow: 0 0 0 3px rgba(124,111,224,0.15);
+    }
+    input[type="number"]::placeholder { color: var(--slate); }
+    select option { background: var(--navy-2); }
+
+    /* ── BUTTON ── */
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--lavender), #5A4EC2);
+      color: var(--white);
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      margin-top: 24px;
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(124,111,224,0.4); }
+    .btn:hover::after { opacity: 1; }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Spinner inside button */
+    .btn .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    .btn.loading .btn-text { display: none; }
+    .btn.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULT PANEL ── */
+    #result-section {
+      display: none;
+      animation: fadeUp 0.5s ease forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-img-wrap {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .result-img-wrap img {
+      width: 100%;
+      display: block;
+      border-radius: 16px;
+      transition: transform 0.4s ease;
+    }
+    .result-img-wrap:hover img { transform: scale(1.02); }
+    .result-badge {
+      position: absolute;
+      top: 14px; right: 14px;
+      background: rgba(13,15,26,0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--success);
+    }
+
+    /* ── SIZE DISPLAY ── */
+    .size-hero {
+      background: linear-gradient(135deg, rgba(124,111,224,0.15), rgba(232,165,152,0.08));
+      border: 1px solid rgba(124,111,224,0.2);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .size-hero .size-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 8px;
+    }
+    .size-hero .size-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--lavender), var(--rose));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+    .size-hero .size-tip {
+      font-size: 0.82rem;
+      color: var(--slate);
+      margin-top: 8px;
+    }
+
+    /* ── STAT PILLS ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-pill {
+      background: var(--navy-3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .stat-pill .sv {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--white);
+    }
+    .stat-pill .sl {
+      font-size: 0.68rem;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    /* ── BODY TYPE ── */
+    .body-type-card {
+      background: var(--navy-3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .body-type-icon {
+      font-size: 1.8rem;
+      width: 48px; height: 48px;
+      background: rgba(124,111,224,0.12);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .body-type-info .bt-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .body-type-info .bt-tip {
+      font-size: 0.8rem;
+      color: var(--slate);
+      margin-top: 3px;
+      line-height: 1.5;
+    }
+
+    /* ── SIZE CHART TABLE ── */
+    .size-chart-wrap { overflow-x: auto; }
+    .size-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 8px;
+    }
+    .size-table th {
+      padding: 9px 12px;
+      text-align: left;
+      color: var(--slate);
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+    }
+    .size-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--white);
+    }
+    .size-table tr.highlighted td {
+      background: rgba(124,111,224,0.12);
+      color: var(--lav-soft);
+      font-weight: 600;
+    }
+    .size-table tr.highlighted td:first-child {
+      border-radius: 6px 0 0 6px;
+    }
+    .size-table tr.highlighted td:last-child {
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* ── FULL-WIDTH RESULT ── */
+    #result-full { margin-top: 28px; }
+
+    /* ── ERROR TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 32px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #3D1A1A;
+      border: 1px solid rgba(255,80,80,0.3);
+      color: #FF9999;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.35s;
+      z-index: 999;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 48px 24px 32px;
+      color: var(--slate);
+      font-size: 0.78rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      width: 40px; height: 3px;
+      background: linear-gradient(90deg, var(--lavender), var(--rose));
+      border-radius: 2px;
+      margin: 0 0 20px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      main { padding: 90px 20px 40px; }
+      nav { padding: 16px 20px; }
+      .grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">FitVision</div>
+    <div class="nav-badge">AI Powered</div>
+  </nav>
+
+  <main>
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-tag">Virtual Try-On Studio</div>
+      <h1>See How It Fits<br><span>Before You Buy</span></h1>
+      <p>Upload your photo and a garment image to preview the look — plus get your perfect size recommendation.</p>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="grid">
+
+      <!-- LEFT: INPUTS -->
+      <div>
+        <!-- Photos -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span class="icon">📷</span> Upload Photos
+          </div>
+
+          <!-- User photo -->
+          <div class="field-group">
+            <label>Your Photo</label>
+            <div class="drop-zone" id="dz-user">
+              <input type="file" id="user_image" accept="image/*"/>
+              <span class="drop-icon">🧍</span>
+              <div class="drop-label">Drop your photo here</div>
+              <div class="drop-sub">JPG, PNG, WEBP · Max 10 MB</div>
+              <img id="preview-user" class="drop-preview" alt=""/>
+              <div id="fn-user" class="drop-filename"></div>
+            </div>
+          </div>
+
+          <!-- Cloth photo -->
+          <div class="field-group" style="margin-bottom:0">
+            <label>Garment Image</label>
+            <div class="drop-zone" id="dz-cloth">
+              <input type="file" id="cloth_image" accept="image/*"/>
+              <span class="drop-icon">👕</span>
+              <div class="drop-label">Drop the clothing item</div>
+              <div class="drop-sub">Works best with flat-lay or product shots</div>
+              <img id="preview-cloth" class="drop-preview" alt=""/>
+              <div id="fn-cloth" class="drop-filename"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Measurements -->
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">📏</span> Your Measurements
+          </div>
+
+          <div class="field-group">
+            <div class="field-row">
+              <div>
+                <label>Height (cm)</label>
+                <input type="number" id="height" placeholder="e.g. 170" min="100" max="250"/>
+              </div>
+              <div>
+                <label>Weight (kg)</label>
+                <input type="number" id="weight" placeholder="e.g. 65" min="30" max="300"/>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group" style="margin-bottom: 0;">
+            <label>Gender (for sizing)</label>
+            <select id="gender">
+              <option value="unisex">Unisex / Prefer not to say</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+
+          <button class="btn" id="submit-btn" onclick="submitForm()">
+            <span class="btn-text">✨ Generate Try-On</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: RESULT -->
+      <div id="result-section">
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">🪞</span> Your Look
+          </div>
+          <div class="result-img-wrap">
+            <img id="result-img" src="" alt="Try-on result"/>
+            <div class="result-badge">✓ AI Generated</div>
+          </div>
+
+          <!-- Size hero -->
+          <div class="size-hero">
+            <div class="size-label">Recommended Size</div>
+            <div class="size-value" id="size-value">–</div>
+            <div class="size-tip" id="size-tip"></div>
+          </div>
+
+          <!-- Stats -->
+          <div class="stat-row">
+            <div class="stat-pill">
+              <div class="sv" id="stat-bmi">–</div>
+              <div class="sl">BMI</div>
+            </div>
+            <div class="stat-pill">
+              <div class="sv" id="stat-height">–</div>
+              <div class="sl">Height</div>
+            </div>
+            <div class="stat-pill">
+              <div class="sv" id="stat-weight">–</div>
+              <div class="sl">Weight</div>
+            </div>
+          </div>
+
+          <!-- Body type -->
+          <div class="body-type-card" id="body-type-card">
+            <div class="body-type-icon" id="bt-icon"></div>
+            <div class="body-type-info">
+              <div class="bt-label" id="bt-label"></div>
+              <div class="bt-tip" id="bt-tip"></div>
+            </div>
+          </div>
+
+          <!-- Size chart -->
+          <div>
+            <div class="section-divider"></div>
+            <div class="card-title" style="margin-bottom: 12px; font-size: 0.95rem;">
+              <span class="icon">📊</span> Size Chart
+            </div>
+            <div class="size-chart-wrap">
+              <table class="size-table">
+                <thead>
+                  <tr>
+                    <th>Size</th>
+                    <th>Chest</th>
+                    <th>Waist</th>
+                    <th>Hips</th>
+                  </tr>
+                </thead>
+                <tbody id="size-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    FitVision &nbsp;·&nbsp; AI-Powered Virtual Try-On &nbsp;·&nbsp; Results are indicative
+  </footer>
+
+  <div id="toast"></div>
+
+  <script>
+    // ── File Preview ──
+    function setupDropZone(dzId, inputId, previewId, fnId) {
+      const dz = document.getElementById(dzId);
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      const fn = document.getElementById(fnId);
+
+      input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) return;
+        fn.textContent = '✓ ' + file.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+          dz.querySelector('.drop-icon').style.display = 'none';
+          dz.querySelector('.drop-label').style.display = 'none';
+          dz.querySelector('.drop-sub').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      });
+
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+      dz.addEventListener('drop', e => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event('change'));
+      });
+    }
+
+    setupDropZone('dz-user',  'user_image',  'preview-user',  'fn-user');
+    setupDropZone('dz-cloth', 'cloth_image', 'preview-cloth', 'fn-cloth');
+
+    // ── Toast ──
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    // ── Submit ──
+    async function submitForm() {
+      const userFile  = document.getElementById('user_image').files[0];
+      const clothFile = document.getElementById('cloth_image').files[0];
+      const height    = document.getElementById('height').value;
+      const weight    = document.getElementById('weight').value;
+      const gender    = document.getElementById('gender').value;
+
+      if (!userFile || !clothFile) { showToast('Please upload both photos.'); return; }
+      if (!height || !weight)      { showToast('Please enter your height and weight.'); return; }
+
+      const btn = document.getElementById('submit-btn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      const fd = new FormData();
+      fd.append('user_image',  userFile);
+      fd.append('cloth_image', clothFile);
+      fd.append('height', height);
+      fd.append('weight', weight);
+      fd.append('gender', gender);
+
+      try {
+        const resp = await fetch('/predict', { method: 'POST', body: fd });
+        const data = await resp.json();
+
+        if (data.error) { showToast(data.error); return; }
+
+        // Result image
+        document.getElementById('result-img').src = '/' + data.result_image + '?t=' + Date.now();
+
+        // Size
+        document.getElementById('size-value').textContent = data.size;
+        document.getElementById('size-tip').textContent   = data.body_type.tip || '';
+
+        // Stats
+        document.getElementById('stat-bmi').textContent    = data.bmi;
+        document.getElementById('stat-height').textContent = data.height + 'cm';
+        document.getElementById('stat-weight').textContent = data.weight + 'kg';
+
+        // Body type
+        document.getElementById('bt-icon').textContent  = data.body_type.icon;
+        document.getElementById('bt-label').textContent = data.body_type.label + ' Build';
+        document.getElementById('bt-tip').textContent   = data.body_type.tip;
+
+        // Size chart
+        const tbody = document.getElementById('size-table-body');
+        tbody.innerHTML = '';
+        data.size_chart.forEach(row => {
+          const tr = document.createElement('tr');
+          if (row.size === data.size) tr.classList.add('highlighted');
+          tr.innerHTML = `<td>${row.size}${row.size === data.size ? ' ◀' : ''}</td><td>${row.chest}</td><td>${row.waist}</td><td>${row.hips}</td>`;
+          tbody.appendChild(tr);
+        });
+
+        // Show result
+        const rs = document.getElementById('result-section');
+        rs.style.display = 'block';
+        setTimeout(() => rs.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+      } catch(e) {
+        showToast('Something went wrong. Please try again.');
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
